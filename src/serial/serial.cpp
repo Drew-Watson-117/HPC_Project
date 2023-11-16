@@ -24,8 +24,8 @@ int main() {
             int count = 0;
             // For each pixel in a 100 pixel radius (square radius) in the image boundaries
             // std::max and std::min ensure considerX and considerY are in the bounds of image
-            for (int16_t considerX = std::max(centerX - 100,0); considerX <= std::min(centerX + 100,5999); ++considerX) { 
-                for (int16_t considerY = std::max(centerY - 100,0); considerY <= std::min(centerY + 100,5999); ++considerY) {
+            for (int16_t considerX = std::max(centerX - 50,0); considerX <= std::min(centerX + 50,5999); ++considerX) { 
+                for (int16_t considerY = std::max(centerY - 50,0); considerY <= std::min(centerY + 50,5999); ++considerY) {
                     bool isSight = isLineOfSight(data,centerX,centerY,considerX,considerY);
                     if (isSight) {
                         count++;

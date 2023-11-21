@@ -1,20 +1,35 @@
 #include "helper_functions.hpp"
 #include <algorithm>
+#include <chrono>
 
 /*  
-    Given an elevation map, a starting coordinate, and an ending coordinate, determine whether there is line of sight between the two points.
+    Given an elevation map, a starting coordinate, and an ending coordinate, count the number of pixels the two points which have line of sight with the starting point.
     May specify x dimension of the elevation map xDim and whether to display debug messages
 */
-bool isLineOfSight(std::vector<int16_t> data, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t xDim = 6000, bool debug = false);
+int countLineOfSight(std::vector<int16_t> data, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t xDim = 6000, bool debug = false);
 
 /*
-    Function for testing isLineOfSight on a dataset
+    Functions for testing countLineOfSight on a dataset
 */
 void test(bool debug=false);
+// Tests an iteration of the algorithm with a specified range (radius to consider)
+void timing(int16_t range=100);
+
+/*
+	Function which contains the logic for the serial implementation of the algorithm
+*/
+void serial(int16_t range=100);
 
 int main() {   
     // test();
-    std::vector<int16_t> data = getData();
+	timing();
+    // serial();
+
+    return 0;
+}
+
+void serial(int16_t range) {
+	std::vector<int16_t> data = getData();
 
     std::vector<int> counts(6000*6000,0);
 
@@ -22,16 +37,25 @@ int main() {
     for (int16_t centerX = 0; centerX < 6000; ++centerX) {
         for (int16_t centerY = 0; centerY < 6000; ++centerY) {
             int count = 0;
-            // For each pixel in a 100 pixel radius (square radius) in the image boundaries
+            // For each pixel on the edge of a square of radius 100 around the center pixel
             // std::max and std::min ensure considerX and considerY are in the bounds of image
-            for (int16_t considerX = std::max(centerX - 100,0); considerX <= std::min(centerX + 100,5999); ++considerX) { 
-                for (int16_t considerY = std::max(centerY - 100,0); considerY <= std::min(centerY + 100,5999); ++considerY) {
-                    bool isSight = isLineOfSight(data,centerX,centerY,considerX,considerY);
-                    if (isSight) {
-                        count++;
-                    }
-                }
-            }
+
+			// Fix considerX at centerX - 100, vary considerY
+			for (short considerY = std::max(centerY - range, 0); considerY <= std::min(centerY + range,5999); ++considerY) {
+				count += countLineOfSight(data,centerX,centerY,std::max(0,centerX - range),considerY);
+			}
+			// Fix considerX at centerX + 100, vary considerY
+			for (short considerY = std::max(centerY - range, 0); considerY <= std::min(centerY + range,5999); ++considerY) {
+				count += countLineOfSight(data,centerX,centerY,std::min(5999,centerX + range),considerY);
+			}
+			// Fix considerY at centerY - 100, vary considerX
+			for (short considerX = std::max(centerX - range, 0); considerX <= std::min(centerX + range,5999); ++considerX) {
+				count += countLineOfSight(data,centerX,centerY,considerX,std::min(5999,centerY + range));
+			}
+			// Fix considerY at centerY + 100, vary considerX
+			for (short considerX = std::max(centerX - range, 0); considerX <= std::min(centerX + range,5999); ++considerX) {
+				count += countLineOfSight(data,centerX,centerY,considerX,std::min(5999,centerY + range));
+			}
             counts[getIndex(centerX,centerY)] = count;
         }
     }
@@ -39,21 +63,17 @@ int main() {
     writeFile(counts,"output.raw");
     std::cout << "Done!" << std::endl;
     std::cout << "Visible pixels from (0,0): " << counts[getIndex(0,0)] << std::endl; 
-
-    return 0;
 }
 
-bool isLineOfSight(std::vector<int16_t> data,int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t xDim, bool debug)
+int countLineOfSight(std::vector<int16_t> data,int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t xDim, bool debug)
 {
+	// count: Number of points in the straight line between (x1,y1) and (x2,y2) that have line of sight with (x1,y1)
+	int count = 0;
+
 	// Compute the differences between start and end points
     
 	int dx = x2 - x1;
 	int dy = y2 - y1;
-    float z2 = static_cast<float>(data[getIndex(x2,y2,xDim)]);
-    float z1 = static_cast<float>(data[getIndex(x1,y1,xDim)]);
-    float dz = z2 - z1;
-    float SLOPE = dz / std::sqrt(std::pow(dx,2)+std::pow(dy,2));
-
 
 	// Absolute values of the change in x and y
 	const int abs_dx = abs(dx);
@@ -62,8 +82,17 @@ bool isLineOfSight(std::vector<int16_t> data,int16_t x1, int16_t y1, int16_t x2,
 	// Initial point
 	int x = x1;
 	int y = y1;
-    float z = z1;
-    float zLineOfSight;
+	double z1 = static_cast<double>(data[getIndex(x1,y1,xDim)]);
+	// z: the real elevation of the currently considered point
+    double z = z1;
+	// zLineOfSight: the z value for the "line of sight" line between (x1,y1) and (x,y) at point (xMax,yMax)
+    double zLineOfSightAtMax;
+	// slope: slope of the "line of sight" line between (x1,y1) and (x,y)
+	double slope;
+	// zMax: the largest elevation value between (x1,y1) and (x,y). Full coordinate is (xMax,yMax,zMax)
+	int xMax = x1;
+	int yMax = y1;
+	double zMax = z1;
 
 	// Proceed based on the absolute differences to support all octants
 	if (abs_dx > abs_dy)
@@ -85,24 +114,34 @@ bool isLineOfSight(std::vector<int16_t> data,int16_t x1, int16_t y1, int16_t x2,
 		// Draw the line for the x-major case
 		for (int i = 0; i <= abs_dx; i++)
 		{
+			// Get z and determine whether it is zMax
+            z = static_cast<double>(data[getIndex(x,y,xDim)]);
+			if (z > zMax) {
+				xMax = x;
+				yMax = y;
+				zMax = z;
+			}
+			// Compute the slope for line of sight from (x1,y1,z1) to (x,y,z)
+			slope = (z-z1) / std::sqrt(std::pow((x-x1),2)+std::pow((y-y1),2));
+			
+			// Compute the line of sight z value at (xMax,yMax,zMax)
+            zLineOfSightAtMax = slope * std::sqrt(std::pow((xMax-x1),2)+std::pow((yMax-y1),2)) + z1;
             
-            zLineOfSight = SLOPE * std::sqrt(std::pow((x-x1),2)+std::pow((y-y1),2)) + z1;
-            z = static_cast<float>(data[getIndex(x,y,xDim)]);
 
             // Print debug messages
             if (debug) {
-                std::cout << "(" << x << "," << y << "," << z << ")" << std::endl; // TODELETE
-                std::cout << "zLineOfSight = " << zLineOfSight << std::endl;
+                std::cout << "(" << x << "," << y << "," << z << ")" << std::endl;
+				std::cout << "Slope = " << slope << std::endl;
+                std::cout << "zLineOfSightAtMax = " << zLineOfSightAtMax << std::endl;
                 std::cout << "z = " << z << std::endl;
-                std::cout << "\n";
+				std::cout << "zMax = " << zMax << std::endl;
+				if (zMax <= zLineOfSightAtMax) std::cout << "Iterating Count" << std::endl;
+				std::cout << "\n" << std::endl;
             }
 			
-
-            if (z > zLineOfSight) {
-                if (debug) {
-                    std::cout << "Returning false" << std::endl;
-                }
-                return false;
+			// If the real value of zMax does not obstruct the line of sight z value at (xMax,yMax), then there is line of sight, iterate count
+            if (zMax <= zLineOfSightAtMax) {
+                count++;
             }
             
 
@@ -149,23 +188,34 @@ bool isLineOfSight(std::vector<int16_t> data,int16_t x1, int16_t y1, int16_t x2,
 		// Draw the line for the y-major case
 		for (int i = 0; i <= abs_dy; i++)
 		{
-            zLineOfSight = SLOPE * std::sqrt(std::pow((x-x1),2)+std::pow((y-y1),2)) + z1;
-            z = static_cast<float>(data[getIndex(x,y,xDim)]);
+            // Get z and determine whether it is zMax
+            z = static_cast<double>(data[getIndex(x,y,xDim)]);
+			if (z > zMax) {
+				xMax = x;
+				yMax = y;
+				zMax = z;
+			}
+			// Compute the slope for line of sight from (x1,y1,z1) to (x,y,z)
+			slope = (z-z1) / std::sqrt(std::pow((x-x1),2)+std::pow((y-y1),2));
+
+			// Compute the line of sight z value at (xMax,yMax,zMax)
+            zLineOfSightAtMax = slope * std::sqrt(std::pow((xMax-x1),2)+std::pow((yMax-y1),2)) + z1;
             
+
             // Print debug messages
             if (debug) {
-                std::cout << "(" << x << "," << y << "," << z << ")" << std::endl; // TODELETE
-                std::cout << "zLineOfSight = " << zLineOfSight << std::endl;
+                std::cout << "(" << x << "," << y << "," << z << ")" << std::endl;
+				std::cout << "Slope = " << slope << std::endl;
+                std::cout << "zLineOfSightAtMax = " << zLineOfSightAtMax << std::endl;
                 std::cout << "z = " << z << std::endl;
-                std::cout << "\n";
+				std::cout << "zMax = " << zMax << std::endl;
+				if (zMax <= zLineOfSightAtMax) std::cout << "Iterating Count" << std::endl;
+				std::cout << "\n" << std::endl;
             }
 			
-
-            if (z > zLineOfSight) {
-                if (debug) {
-                    std::cout << "Returning false" << std::endl;
-                }
-                return false;
+			// If the real value of zMax does not obstruct the line of sight z value at (xMax,yMax), then there is line of sight, iterate count
+            if (zMax <= zLineOfSightAtMax) {
+                count++;
             }
 
 			// Threshold for deciding whether or not to update x
@@ -192,7 +242,10 @@ bool isLineOfSight(std::vector<int16_t> data,int16_t x1, int16_t y1, int16_t x2,
 			y += dy_update;
 		}
 	}
-    return true;
+	if (debug) {
+		std::cout << "Returning " << count << std::endl;
+	}
+    return count;
 }
 
 
@@ -201,22 +254,33 @@ void test(bool debug) {
                                   1, 1, 1, 1,
                                   2, 2, 3, 2,
                                   3, 3, 3, 3};
-    bool sight;
-    for (int x1 = 1; x1 < 4; ++x1) {
-        for (int y1 = 1; y1 < 4; ++y1) {
-            for (int x2 = 1; x2 < 4; ++x2) {
-                for (int y2 = 1; y2 < 4; ++y2) {
-                    std::cout << "Testing from (" << x1 << "," << y1 << ") to (" << x2 << "," << y2 << "): ";
-                    sight = isLineOfSight(testData,x1,y1,x2,y2,4,debug);
-                    if (sight) std::cout << "True" << std::endl;
-                    else std::cout << "False" << std::endl;
-                }
-            }
-        }
-    }
+    int count;
 
-    // auto sight = isLineOfSight(testData,1,1,3,3,4,true) ? "true" : "false";
-    // std::cout <<sight<<std::endl;
+	int x1 = 0, y1 = 0;
+	int x2 = 0, y2 = 0;
+	std::cout << "Testing from (" << x1 << "," << y1 << ") to (" << x2 << "," << y2 << "): ";
+    count = countLineOfSight(testData,x1,y1,x2,y2,4,debug);
+    std::cout << count << std::endl;
+	x2 = 0, y2 = 3;
+	std::cout << "Testing from (" << x1 << "," << y1 << ") to (" << x2 << "," << y2 << "): ";
+    count = countLineOfSight(testData,x1,y1,x2,y2,4,debug);
+    std::cout << count << std::endl;
+	x2 = 3, y2 = 0;
+	std::cout << "Testing from (" << x1 << "," << y1 << ") to (" << x2 << "," << y2 << "): ";
+    count = countLineOfSight(testData,x1,y1,x2,y2,4,debug);
+    std::cout << count << std::endl;
+	x2 = 3, y2 = 3;
+	std::cout << "Testing from (" << x1 << "," << y1 << ") to (" << x2 << "," << y2 << "): ";
+    count = countLineOfSight(testData,x1,y1,x2,y2,4,debug);
+    std::cout << count << std::endl;
 
+}
 
+void timing(int16_t range) {
+	std::vector<int16_t> data = getData();
+	auto start = std::chrono::high_resolution_clock::now();
+	int count = countLineOfSight(data,200,200,200,200-range);
+	auto stop = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop-start);
+	std::cout << duration.count() << " ms" << std::endl;
 }

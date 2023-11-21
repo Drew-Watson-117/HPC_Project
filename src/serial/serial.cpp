@@ -6,7 +6,9 @@
     Given an elevation map, a starting coordinate, and an ending coordinate, count the number of pixels the two points which have line of sight with the starting point.
     May specify x dimension of the elevation map xDim and whether to display debug messages
 */
-int countLineOfSight(std::vector<int16_t> data, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t xDim = 6000, bool debug = false);
+int countLineOfSight(std::vector<int16_t> &data, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t xDim = 6000, bool debug = false);
+// Implementation of countLineOfSight using shorts instead of doubles for all z computation
+int countLineOfSightInt(std::vector<int16_t> data, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t xDim = 6000, bool debug = false);
 
 /*
     Functions for testing countLineOfSight on a dataset
@@ -22,8 +24,8 @@ void serial(int16_t range=100);
 
 int main() {   
     // test();
-	timing();
-    // serial();
+	// timing(100);
+    serial(10);
 
     return 0;
 }
@@ -65,7 +67,7 @@ void serial(int16_t range) {
     std::cout << "Visible pixels from (0,0): " << counts[getIndex(0,0)] << std::endl; 
 }
 
-int countLineOfSight(std::vector<int16_t> data,int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t xDim, bool debug)
+int countLineOfSight(std::vector<int16_t> &data,int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t xDim, bool debug)
 {
 	// count: Number of points in the straight line between (x1,y1) and (x2,y2) that have line of sight with (x1,y1)
 	int count = 0;
@@ -248,7 +250,6 @@ int countLineOfSight(std::vector<int16_t> data,int16_t x1, int16_t y1, int16_t x
     return count;
 }
 
-
 void test(bool debug) {
     std::vector<int16_t> testData{0, 0, 0, 0,
                                   1, 1, 1, 1,
@@ -278,9 +279,11 @@ void test(bool debug) {
 
 void timing(int16_t range) {
 	std::vector<int16_t> data = getData();
+	int count;
+	std::cout << "Timing double implementation" << std::endl;
 	auto start = std::chrono::high_resolution_clock::now();
-	int count = countLineOfSight(data,200,200,200,200-range);
+	for (int i = 0; i < 100; i++) count = countLineOfSight(data,200,200,200,200-range);
 	auto stop = std::chrono::high_resolution_clock::now();
-	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop-start);
-	std::cout << duration.count() << " ms" << std::endl;
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop-start);
+	std::cout << duration.count() / 100 << " us" << std::endl;
 }

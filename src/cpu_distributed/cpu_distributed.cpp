@@ -2,9 +2,13 @@
 #include <algorithm>
 #include <chrono>
 #include <mpi.h>
+#include <stdio.h>
 /*  
     Given an elevation map, a starting coordinate, and an ending coordinate, count the number of pixels the two points which have line of sight with the starting point.
     May specify x dimension of the elevation map xDim and whether to display debug messages
+
+    compile w/o build tool: mpic++ -g -Wall -o cpu_distributed cpu_distributed.cpp helper_functions.hpp helper_functions.cpp
+    run: mpiexec ./cpu_distributed
 */
 int countLineOfSight(std::vector<int16_t> &data, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t xDim = 6000, bool debug = false);
 // Implementation of countLineOfSight using shorts instead of doubles for all z computation
@@ -26,12 +30,21 @@ void timing(int16_t range=100);
 //global communication
 MPI_Comm comm;
 int main(int argc, char* argv[]) { 
-    std::vector<int16_t> data(6000*6000, 0);
+    
+   
+
+    //initialize MPI
+    MPI_Init(&argc, &argv);
+
+
+    int data_count = 6000 * 6000; 
+
+
+    std::vector<int16_t> data_t;
+    int16_t* data = new int16_t[data_count];
     std::vector<int> counts(6000*6000, 0);
     int my_rank;
     int comm_sz;
-    //initialize MPI
-    MPI_Init(&argc, &argv);
     //get number of processes available
     MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
 
@@ -43,16 +56,19 @@ int main(int argc, char* argv[]) {
     
     //rank 0 loads data and broadcasts it to all other threads
     if (my_rank == 0){
-       data = getData(); 
-       for(int i = 0; i < 100; i++){
-         std::cout << data[i] << std::endl;
+       std::cout << "getting data from file" << std::endl;
+       data_t = getData();
+       data = data_t.data();
+       std::cout << "previewing data element: " << data[0] << std::endl;
 
-       }
+       //MPI_Bcast(&data_count, 1, MPI_INT, 0, comm);
     }
+    //broadcast vector size to all other threads
+    MPI_Bcast(&data[0], data_count, MPI_SHORT, 0, comm);
     MPI_Barrier(comm);
-    //broadcast the data gathered by rank zero to all processes
-    MPI_Bcast(&data[0], data.size(), MPI_INT, 0, comm);
-    
+    for(int i = 0; i < 10; i++){
+        printf("rank %i, item %i: %i\n", my_rank, i, data[i]);
+    }
 
     //shut down mpi
     MPI_Finalize(); 

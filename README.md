@@ -29,3 +29,18 @@ The `main()` function simply calls the `serial()` function, specifying a range (
 - Use OpenMP directives to parallelize the outermost for loop, which iterates over the rows (centerY). This allows the algorithm to take advantage of caching. In practice, this will be a `#pragma omp parallel for`. 
 - Inside the for loops, when the local count for a pixel wants to be written to the array, there must be a critical section. For this, we can use `#pragma omp critical` to wrap the write operation.
 
+### CPU Distributed Memory Algorithm
+
+### Instructions for build and execution
+
+- To run the CPU Distributed memory implementaiton, run `$ bash ./run_cpu_shared.sh {process_count}`, where `{process_count}` is the number of processes you want to run the program concurrently.
+
+### Approach for the CPU distributed memory program
+
+- Initialize MPI
+- Rank 0 reads in the dataset and then calculates what work each thread will do. Each rank will do the same amount of work, except the last rank which also takes on any work that is remaining using `DATA_COUNT % comm_sz`.
+- Broadcast data, work distribution, and displacements for each rank.
+- Each rank calculates the line of sight for the pixels it has been assigned. The implementation for this is heavily inspired by our serial implementation.
+- Use `MPI_Gatherv` to collect results from each thread to the root thread(rank 0).
+- Rank 0 writes results to `cpu_distributed_out.raw`
+- MPI is shut down.

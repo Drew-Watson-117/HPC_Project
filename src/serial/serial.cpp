@@ -7,8 +7,6 @@
     May specify x dimension of the elevation map xDim and whether to display debug messages
 */
 int countLineOfSight(std::vector<int16_t> &data, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t xDim = 6000, bool debug = false);
-// Implementation of countLineOfSight using shorts instead of doubles for all z computation
-int countLineOfSightInt(std::vector<int16_t> data, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t xDim = 6000, bool debug = false);
 
 /*
     Functions for testing countLineOfSight on a dataset
@@ -36,8 +34,8 @@ void serial(int16_t range) {
     std::vector<int> counts(6000*6000,0);
 
     // For each pixel
-    for (int16_t centerX = 0; centerX < 6000; ++centerX) {
-        for (int16_t centerY = 0; centerY < 6000; ++centerY) {
+    for (int16_t centerY = 0; centerY < 6000; ++centerY) {
+        for (int16_t centerX = 0; centerX < 6000; ++centerX) {
             int count = 0;
             // For each pixel on the edge of a square of radius 100 around the center pixel
             // std::max and std::min ensure considerX and considerY are in the bounds of image
@@ -62,9 +60,8 @@ void serial(int16_t range) {
         }
     }
 
-    writeFile(counts,"output.raw");
-    std::cout << "Done!" << std::endl;
-    std::cout << "Visible pixels from (0,0): " << counts[getIndex(0,0)] << std::endl; 
+    bool success = writeFile(counts,"output_serial.raw");
+    success ? std::cout << "Done!" << std::endl : std::cout << "Error Writing to File" << std::endl;
 }
 
 int countLineOfSight(std::vector<int16_t> &data,int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t xDim, bool debug)

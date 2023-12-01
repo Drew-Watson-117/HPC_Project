@@ -44,3 +44,8 @@ The `main()` function simply calls the `serial()` function, specifying a range (
 - Use `MPI_Gatherv` to collect results from each thread to the root thread(rank 0).
 - Rank 0 writes results to `cpu_distributed_out.raw`
 - MPI is shut down.
+
+### GPU Shared Memory Algorithm
+
+### Instruction for build and execution on CHPC
+- To run the GPU share memory implementation, get a gpu allocation. Make sure the CudaToolkit module is loaded with `module load cuda/12.2.0`. Then run `$ bash ./run_gpu_shared.sh`.

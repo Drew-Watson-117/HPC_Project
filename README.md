@@ -80,19 +80,19 @@ Weak scalability can be examined by increasing the range that each pixel counts 
 
 Shown below is a table which examines the **weak scalability** of the shared cpu (OpenMP) implementation. 
 
-| Number of Cores | Range | Execution Time |
-|-----------------|-------|----------------|
-| 1               | 2     |  18426 ms      |
-| 2               | 4     |  29895 ms      |
-| 4               | 8     |  53854 ms      |
-| 8               | 16    | 119472 ms      |
-| 16              | 32    | 380313 ms      |
+| Number of Cores | Range | Execution Time | Speedup |
+|-----------------|-------|----------------|---------|
+| 1               | 2     |  18426 ms      |         |
+| 2               | 4     |  29895 ms      | 0.616   |
+| 4               | 8     |  53854 ms      | 0.342   |
+| 8               | 16    | 119472 ms      | 0.154   |
+| 16              | 32    | 380313 ms      | 0.048   |
 
-As shown above, the execution time does not stay constant as the range (and problem size by extension) is increased proportionally to the number of threads, so the algorithm does not weakly scale well. 
+As shown above, the execution time does not stay constant as the range (and problem size by extension) is increased proportionally to the number of threads because the speedup does not remain at a constant 1, so the shared cpu implementation does not weakly scale. 
 
 
 ### Scaling Study Conclusion
 
-- The shared cpu (OpenMP) solution does not scale strongly or weakly, but its strong scaling is better than its weak scaling. 
+- The shared cpu (OpenMP) solution does not scale strongly or weakly. The shared cpu implementation has better strong scaling than weak scaling, because in the strong scaling case the efficiency does not decrease proportionally to increases in thread count, where in the weak scaling case the speedup decreases proportionally to increases in thread count. 
 - The shared cpu solution is better than the serial solution, because it parallelizes the problem. 
 - 

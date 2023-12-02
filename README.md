@@ -89,3 +89,10 @@ Shown below is a table which examines the **weak scalability** of the shared cpu
 | 16              | 32    | 380313 ms      |
 
 As shown above, the execution time does not stay constant as the range (and problem size by extension) is increased proportionally to the number of threads, so the algorithm does not weakly scale well. 
+
+
+### Scaling Study Conclusion
+
+- The shared cpu (OpenMP) solution does not scale strongly or weakly, but its strong scaling is better than its weak scaling. 
+- The shared cpu solution is better than the serial solution, because it parallelizes the problem. 
+- 

@@ -41,6 +41,8 @@ void cpu_shared(int thread_count, int16_t range) {
 
     std::vector<int> counts(6000*6000,0);
 
+	auto start = std::chrono::high_resolution_clock::now();
+	
     // For each pixel
 	#pragma omp parallel for num_threads(thread_count)
 	for (int16_t centerY = 0; centerY < 6000; ++centerY) {
@@ -71,6 +73,11 @@ void cpu_shared(int thread_count, int16_t range) {
 			}
 		}
 	}
+	auto stop = std::chrono::high_resolution_clock::now();
+
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop-start);
+	std::cout << "Execution time of CPU shared algorithm with " << thread_count << " threads:" << std::endl;
+	std::cout << duration.count() << " ms" << std::endl;
 
     bool success = writeFile(counts,"output_cpu_shared.raw");
     success ? std::cout << "Done!" << std::endl : std::cout << "Error Writing to File" << std::endl;

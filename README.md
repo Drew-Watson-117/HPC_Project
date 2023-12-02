@@ -36,7 +36,7 @@ The `main()` function simply calls the `serial()` function, specifying a range (
 - Use OpenMP directives to parallelize the outermost for loop, which iterates over the rows (centerY). This allows the algorithm to take advantage of caching. In practice, this will be a `#pragma omp parallel for`. 
 - Inside the for loops, when the local count for a pixel wants to be written to the array, there must be a critical section. For this, we can use `#pragma omp critical` to wrap the write operation.
 
-### CPU Distributed Memory Algorithm
+## CPU Distributed Memory Algorithm
 
 ### Instructions for build and execution
 
@@ -52,7 +52,28 @@ The `main()` function simply calls the `serial()` function, specifying a range (
 - Rank 0 writes results to `cpu_distributed_out.raw`
 - MPI is shut down.
 
-### GPU Shared Memory Algorithm
+## GPU Shared Memory Algorithm
 
 ### Instruction for build and execution on CHPC
 - To run the GPU share memory implementation, get a gpu allocation. Make sure the CudaToolkit module is loaded with `module load cuda/12.2.0`. Then run `$ bash ./run_gpu_shared.sh`.
+
+
+## Scaling Study
+
+### Comparing Serial, Shared CPU, and Shared GPU
+
+The execution time of the serial algorithm ranges from about 265,799 ms to 287,679 ms. 
+
+Shown below is a table which examines the **strong scalability** of the shared cpu (OpenMP) implementation.
+
+| Number of Cores | Execution Time     | Speedup | Efficiency |
+|-----------------|--------------------|---------|------------|
+| 1               | 287439 ms          |         |            |
+| 2               | 147115 ms          | 1.95    |  0.977     |
+| 4               | 106258 ms          | 2.71    |  0.676     |
+| 8               |  67013 ms          | 4.29    |  0.536     |
+| 16              |  42623 ms          | 6.74    |  0.421     |
+
+It is clear from the table above that the algorithm is not strongly scalable because the efficiency does not remain constant as the number of cores increases. However, it should be noted that adding cores still greatly benefits the execution time, at least up to 8 cores. 
+
+Because the problem size is constant (elevation map is always the same size), examining the weak scalability of the algorithm doesn't make very much sense. To attempt to examine the weak scalability of the algorithm, we could vary the range that the algorithm searches around each pixel and measure execution time. However, the execution of the algorithm is ~$range^2$, so the problem would not weakly scale that way. 

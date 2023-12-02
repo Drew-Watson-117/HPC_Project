@@ -33,6 +33,7 @@ void serial(int16_t range) {
 
     std::vector<int> counts(6000*6000,0);
 
+	auto start = std::chrono::high_resolution_clock::now();
     // For each pixel
     for (int16_t centerY = 0; centerY < 6000; ++centerY) {
         for (int16_t centerX = 0; centerX < 6000; ++centerX) {
@@ -59,6 +60,11 @@ void serial(int16_t range) {
             counts[getIndex(centerX,centerY)] = count;
         }
     }
+	auto stop = std::chrono::high_resolution_clock::now();
+
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop-start);
+	std::cout << "Execution time of serial algorithm" << std::endl;
+	std::cout << duration.count() << " ms" << std::endl;
 
     bool success = writeFile(counts,"output_serial.raw");
     success ? std::cout << "Done!" << std::endl : std::cout << "Error Writing to File" << std::endl;

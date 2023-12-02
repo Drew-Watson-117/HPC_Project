@@ -76,4 +76,16 @@ Shown below is a table which examines the **strong scalability** of the shared c
 
 It is clear from the table above that the algorithm is not strongly scalable because the efficiency does not remain constant as the number of cores increases. However, it should be noted that adding cores still greatly benefits the execution time, at least up to 8 cores. 
 
-Because the problem size is constant (elevation map is always the same size), examining the weak scalability of the algorithm doesn't make very much sense. To attempt to examine the weak scalability of the algorithm, we could vary the range that the algorithm searches around each pixel and measure execution time. However, the execution of the algorithm is ~$range^2$, so the problem would not weakly scale that way. 
+Weak scalability can be examined by increasing the range that each pixel counts line of sight for proportionally to the increase in threads. This is because the execution time of our algorithm is proportional to the range (algorithm iterates over the perimeter of a square of side length $2*range$). If the execution time remains constant, then the problem weakly scales. 
+
+Shown below is a table which examines the **weak scalability** of the shared cpu (OpenMP) implementation. 
+
+| Number of Cores | Range | Execution Time |
+|-----------------|-------|----------------|
+| 1               | 2     |  18426 ms      |
+| 2               | 4     |  29895 ms      |
+| 4               | 8     |  53854 ms      |
+| 8               | 16    | 119472 ms      |
+| 16              | 32    | 380313 ms      |
+
+As shown above, the execution time does not stay constant as the range (and problem size by extension) is increased proportionally to the number of threads, so the algorithm does not weakly scale well. 

@@ -138,15 +138,14 @@ __device__ int countLineOfSight(int16_t *data, int x1, int y1, int x2, int y2, i
 __global__ void lineOfSightKernel(int16_t *data, int *results, int width, int height, int offsetY_begin, int offsetY_end, int range) {
     int centerX = blockIdx.x * blockDim.x + threadIdx.x;
     int centerY = offsetY_begin + (blockIdx.y * blockDim.y + threadIdx.y);
-
-    if (centerX < width && centerY < offsetY_end){
+    if (centerX < width && centerY <= offsetY_end){
         int count = 0;
 
         // Define the boundary of the square around the center pixel
         int startX = max(0, centerX - range);
         int endX = min(width - 1, centerX + range);
         int startY = max(0, centerY - range);
-        int endY = min(height - 1, centerY + range);
+        int endY = min(width - 1, centerY + range);
 
         // Iterate over the boundary pixels
         for (int x = startX; x <= endX; x++) {
@@ -157,7 +156,7 @@ __global__ void lineOfSightKernel(int16_t *data, int *results, int width, int he
             count += countLineOfSight(data, centerX, centerY, startX, y, width);
             count += countLineOfSight(data, centerX, centerY, endX, y, width);
         }
-
+        printf("count at (%i, %i): %i", centerX, centerY, count);	
         results[(width * offsetY_begin) - centerY * width + centerX] = count;
     }
 }
@@ -174,7 +173,7 @@ void launchLineOfSightKernel_MPI(int16_t *d_data, int *d_results, int width, int
     //std::cout << "Launching Kernel" << std::endl;
 
     // Launch the kernel
-    lineOfSightKernel<<<dimGrid, dimBlock, sharedMemorySize>>>(d_data, d_results, width, height, offsetY_begin, offsetY_end, range);
+    lineOfSightKernel<<<dimGrid, dimBlock>>>(d_data, d_results, width, height, offsetY_begin, offsetY_end, range);
 
     // Check for errors
     cudaError_t cudaStatus = cudaGetLastError();
@@ -208,15 +207,18 @@ extern "C" void cuda_bootstrapper(std::vector<int16_t> &data, std::vector<int> &
         launchLineOfSightKernel_MPI(d_data, d_counts, width, rows_per_rank, offsetY_begin, offsetY_end, range);
     }
     else{
+	printf("rows per rank: %i\n", rows_per_rank);
         launchLineOfSightKernel_MPI(d_data, d_counts, width, rows_per_rank + row_overflow, offsetY_begin, offsetY_end, range);
     }
     cudaDeviceSynchronize();
     
     cudaError_t cudaStatus = cudaGetLastError();
-    
+    if(my_rank != comm_sz - 1){ 
     cudaMemcpy(counts.data(), d_counts, width * rows_per_rank * sizeof(int), cudaMemcpyDeviceToHost);
+    }
+    else{
+    	cudaMemcpy(counts.data(), d_counts, width * (rows_per_rank + row_overflow) * sizeof(int), cudaMemcpyDeviceToHost);
+    }
 
-    cudaFree(d_data);
-    cudaFree(d_counts);
 }
 

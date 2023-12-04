@@ -1,5 +1,7 @@
 # HPC Project: AwannaCU
 
+# Description of Implementation and Execution
+
 ## Serial Algorithm
 
 ### Instructions for build and execution
@@ -58,9 +60,38 @@ The `main()` function simply calls the `serial()` function, specifying a range (
 - To run the GPU share memory implementation, get a gpu allocation. Make sure the CudaToolkit module is loaded with `module load cuda/12.2.0`. Then run `$ bash ./run_gpu_shared.sh`.
 
 
-## Scaling Study
 
-### Comparing Serial, Shared CPU, and Shared GPU
+
+# Validation of Output
+
+To validate the output of a program against the serial implementation, run the validation program. First, you must run the scripts for the two implementations you wish to compare. For example, if you want to compare the cpu shared and serial outputs, first run the following two scripts from the PARENT DIRECTORY of the repository:
+
+`$ bash ./run_serial.sh`
+
+`$ bash ./run_cpu_shared.sh`
+
+Once the output files have been created, we can compare them. First, compile the output validation program by running this command:
+
+`$ g++ src/compare_datasets.cpp -o output_comparison`
+
+Then, run `output_comparison`, supplying it the two files to compare:
+
+`$ ./output_comparison output_serial.raw output_cpu_shared.raw`
+
+If the outputs match, the program will output the message:
+
+`Implementation outputs match!`
+
+If the outputs do not match, the program will output the message:
+
+`Implementation outputs DO NOT match`
+
+along with reporting where the first discrepancy took place. 
+
+
+# Scaling Study
+
+## Comparing Serial, Shared CPU, and Shared GPU
 
 The execution time of the serial algorithm ranges from about 265,799 ms to 287,679 ms. 
 
@@ -90,8 +121,9 @@ Shown below is a table which examines the **weak scalability** of the shared cpu
 
 As shown above, the execution time does not stay constant as the range (and problem size by extension) is increased proportionally to the number of threads because the speedup does not remain at a constant 1, so the shared cpu implementation does not weakly scale. 
 
+## Comparing Distributed CPU and Distributed GPU
 
-### Scaling Study Conclusion
+## Scaling Study Conclusion
 
 - The shared cpu (OpenMP) solution does not scale strongly or weakly. The shared cpu implementation has better strong scaling than weak scaling, because in the strong scaling case the efficiency does not decrease proportionally to increases in thread count, where in the weak scaling case the speedup decreases proportionally to increases in thread count. 
 - The shared cpu solution is better than the serial solution, because it parallelizes the problem. 

@@ -1,5 +1,7 @@
 # HPC Project: AwannaCU
-
+![](range10.png) 
+![](range10zoom.png)
+![](range10reallyzoomed.png)
 # Description of Implementation and Execution
 
 ## Serial Algorithm
@@ -69,20 +71,20 @@ The `main()` function simply calls the `serial()` function, specifying a range (
     - ```
         module load intel impi
         module load cuda/12.1
-    ```
+        ```
 - from here, we can create the object files
     - ```
         mpicxx -c gpu_distributed.cpp helper_functions.cpp helper_functions.hpp
         nvcc -c kernel.cu
         ```
 - at this point, we are ready to link our object files together to create a binary
-    -```
-    mpicxx gpu_distributed.o helper_functions.o kernel.o -lcudart
-    ```
+    - ```
+      mpicxx gpu_distributed.o helper_functions.o kernel.o -lcudart
+      ```
 - We now have a binary that will run our GPU Distributed algorithm. I have supplied several different permutations of running this algorithm in the `slurm` folder for this project. To use one of these examples, simply navigate to the `slurm` folder and pick which example you would like to submit as a job
-    -```
-    sbatch run_gpu_dist_strong_3.slurm // queue a job that uses 3 gpus to compute the line of sight
-    ```
+    - ```
+       sbatch run_gpu_dist_strong_3.slurm // queue a job that uses 3 gpus to compute the line of sight
+      ```
 - **Note**: The methodology and design plan for this implementation is located at the top of `kernel.cu`.
 
 # Validation of Output

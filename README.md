@@ -198,7 +198,10 @@ shown below is a table which examimes the **strong scalability** of the distribu
 | Number of Processes | Execution Time | Speedup | Efficiency|
 |---------------------|----------------|---------|-----------|
 | 1                   | 3808 ms        |         |           |
+| 2                   | 2103 ms        | 1.81    | 0.90      |
+| 3                   | 1309 ms        | 2.91    | 0.96      |
 
+We can observe from this table that the problem speedup is proportional to the additional computing bandwidth added to the problem. Even using 16 CPU cores vs a single GPU, a single GPU will outperform a custer of CPUs.
 
 Shown below is a table which examines the **weak scalability** of the distributed GPU implementation
 *Note:* We are using the `v100` GPU provided on the `notchpeak` computing cluster. Because of this, we are limited to using at most 3 GPUs for a single job
@@ -206,10 +209,16 @@ Shown below is a table which examines the **weak scalability** of the distribute
 | Number of Processes | Range | Execution Time | Speedup |
 |---------------------|-------|----------------|---------|
 | 1                   | 4     | 726 ms         |         |
+| 2                   | 8     | 1826 ms        | 0.39    |
+| 3                   | 16    | 3178 ms        | 0.22    |
+| 3                   | 32    | 12234 ms       | 0.59    |
 
+As we can see, there are significant benefits to using a GPU to solve this problem. Comparing 1 CPU vs 1 GPU, the difference in execution time is almost 44 minutes. This shows how this problem lends itself well to parallelism as a GPU's structure allows for higher levels of parallelism than a CPU
 
 ## Scaling Study Conclusion
 
 - The shared cpu (OpenMP) solution does not scale strongly or weakly. The shared cpu implementation has better strong scaling than weak scaling, because in the strong scaling case the efficiency does not decrease proportionally to increases in thread count, where in the weak scaling case the speedup decreases proportionally to increases in thread count. 
 - The shared cpu solution is better than the serial solution, because it parallelizes the problem. 
 - The shared gpu similar to the shared cpu is better then the serial solution due to parallelization. This could be improved with tiling which could make it better then the shared cpu at that point. 
+- Using a message passing interface for CPUs ends up being slower than using shared memory, but for GPUs, using a message passing interface is very beneficial.
+- This problem set lends itself very well to GPU programming as it is inherently a single instruction multiple data problem. 

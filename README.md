@@ -121,10 +121,34 @@ Shown below is a table which examines the **weak scalability** of the shared cpu
 
 As shown above, the execution time does not stay constant as the range (and problem size by extension) is increased proportionally to the number of threads because the speedup does not remain at a constant 1, so the shared cpu implementation does not weakly scale. 
 
+Shown below is a table which examines the **strong scalability** of the shared gpu (CUDA) implementation.
+
+| Block Size      | Execution Time     | Speedup | Efficiency |
+|-----------------|--------------------|---------|------------|
+| 2 $\times$ 2    | 339953 ms          | 0.846   |  0.211     |
+| 4 $\times$ 4    | 85733  ms          | 3.353   |  0.209     |
+| 8 $\times$ 8    | 43267  ms          | 6.643   |  0.104     |
+| 16 $\times$ 16  | 43374  ms          | 6.627   |  0.026     |
+| 16 $\times$ 48  | 43384  ms          | 6.625   |  0.009     |
+
+From the table above we can see that the shared gpu is also not strongly scalable because the efficiency does not remain constant as the block size increases. However, it should be noted that increasing block size still greatly benefits the execution time, at least up to 8 $\times$ 8. The wall that it appears to hit might be broken by implementing tiling.  
+
+Shown below is a table which examines the **weak scalability** of the shared gpu (CUDA) implementation. 
+
+| Block Size      | Range |Execution Time       | Speedup |
+|-----------------|-------|---------------------|---------|
+| 2 $\times$ 2    | 2     | 18905   ms          |         |
+| 4 $\times$ 4    | 4     | 15788   ms          | 1.197   |
+| 8 $\times$ 8    | 8     | 28230   ms          | 0.669   |
+| 16 $\times$ 16  | 16    | 106444  ms          | 0.178   |
+| 16 $\times$ 48  | 32    | 410837  ms          | 0.046   |
+
+As shown above, the execution time does not stay constant as the range (and problem size by extension) is increased proportionally to the number of threads because the speedup does not remain at a constant 1, so the shared gpu implementation also does not weakly scale.
+
 ## Comparing Distributed CPU and Distributed GPU
 
 ## Scaling Study Conclusion
 
 - The shared cpu (OpenMP) solution does not scale strongly or weakly. The shared cpu implementation has better strong scaling than weak scaling, because in the strong scaling case the efficiency does not decrease proportionally to increases in thread count, where in the weak scaling case the speedup decreases proportionally to increases in thread count. 
 - The shared cpu solution is better than the serial solution, because it parallelizes the problem. 
-- 
+- The shared gpu similar to the shared cpu is better then the serial solution due to parallelization. This could be improved with tiling which could make it better then the shared cpu at that point. 

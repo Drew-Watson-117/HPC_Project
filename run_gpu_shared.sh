@@ -2,7 +2,7 @@ if [ ! -d build/gpu_shared ]; then
     echo "build/gpu_shared does not exist. Creating directory...";
     mkdir -p build/gpu_shared;
 fi
-if [ ! -d build/cpu_shared/CMakeFiles ]; then
+if [ ! -d build/gpu_shared/CMakeFiles ]; then
     echo "No cmake files found. Running cmake...";
     cmake -B build/gpu_shared -S src/gpu_shared;
 fi

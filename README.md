@@ -60,7 +60,30 @@ The `main()` function simply calls the `serial()` function, specifying a range (
 - To run the GPU share memory implementation, get a gpu allocation. Make sure the CudaToolkit module is loaded with `module load cuda/12.2.0`. Then run `$ bash ./run_gpu_shared.sh`.
 
 
+## GPU Distributed Memory Algorithm
 
+### Instructions for build and execution on CHPC
+
+- Firstly, the source files must be compiled into a binary. In order to do this navigate to `/src/gpu_distributed`
+- load the necessary modules to compile and eventually run the program
+    - ```
+        module load intel impi
+        module load cuda/12.1
+    ```
+- from here, we can create the object files
+    - ```
+        mpicxx -c gpu_distributed.cpp helper_functions.cpp helper_functions.hpp
+        nvcc -c kernel.cu
+        ```
+- at this point, we are ready to link our object files together to create a binary
+    -```
+    mpicxx gpu_distributed.o helper_functions.o kernel.o -lcudart
+    ```
+- We now have a binary that will run our GPU Distributed algorithm. I have supplied several different permutations of running this algorithm in the `slurm` folder for this project. To use one of these examples, simply navigate to the `slurm` folder and pick which example you would like to submit as a job
+    -```
+    sbatch run_gpu_dist_strong_3.slurm // queue a job that uses 3 gpus to compute the line of sight
+    ```
+- **Note**: The methodology and design plan for this implementation is located at the top of `kernel.cu`.
 
 # Validation of Output
 
@@ -146,6 +169,42 @@ Shown below is a table which examines the **weak scalability** of the shared gpu
 As shown above, the execution time does not stay constant as the range (and problem size by extension) is increased proportionally to the number of threads because the speedup does not remain at a constant 1, so the shared gpu implementation also does not weakly scale.
 
 ## Comparing Distributed CPU and Distributed GPU
+Shown below is a table which examines the **strong scalability** of the distributed CPU implementation
+
+| Number of Processes | Execution Time | Speedup | Efficiency|
+|---------------------|----------------|---------|-----------|
+| 1                   | 2674570 ms     |         |           |
+| 2                   | 1338668 ms     | 1.99    | 0.99      |
+| 4                   | 670399  ms     | 3.98    | 0.99      |
+| 8                   | 296545  ms     | 9.02    | 1.12      |
+| 16                  | 133978  ms     | 19.96   | 1.24      |
+
+Shown below is a table which examines the **weak scalability** of the distributed CPU implementation
+
+| Number of Processes | Range | Execution Time | Speedup |
+|---------------------|-------|----------------|---------|
+| 1                   | 2     | 161960    ms   |         |
+| 2                   | 4     | 245856    ms   | 0.66    |
+| 4                   | 8     | 451940    ms   | 0.36    |
+| 8                   | 16    | 791201    ms   | 0.20    |
+| 16                  | 32    | 1474200   ms   | 0.11    |
+
+
+shown below is a table which examimes the **strong scalability** of the distributed GPU implementation
+*Note:* We are using the `v100` GPU provided on the `notchpeak` computing cluster. Because of this, we are limited to using at most 3 GPUs for a single job
+
+| Number of Processes | Execution Time | Speedup | Efficiency|
+|---------------------|----------------|---------|-----------|
+| 1                   | 3808 ms        |         |           |
+
+
+Shown below is a table which examines the **weak scalability** of the distributed GPU implementation
+*Note:* We are using the `v100` GPU provided on the `notchpeak` computing cluster. Because of this, we are limited to using at most 3 GPUs for a single job
+
+| Number of Processes | Range | Execution Time | Speedup |
+|---------------------|-------|----------------|---------|
+| 1                   | 4     | 726 ms         |         |
+
 
 ## Scaling Study Conclusion
 
